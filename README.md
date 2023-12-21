@@ -171,7 +171,8 @@ Example usage for OrgaMiner_pt.py script with RNA data
 
 Example Metadata Files
 ---
- 
+**Warning**: When specifying species names in the input file, please ensure there are no spaces, and instead, use underscores (_) to separate words in the name. For example, 'Acanthopleura_granulata'
+
 - Usage with Selected Taxa Only
 
 If only the scientific name of taxa is to be given as input, the input meta file can be created like this:
