@@ -19,7 +19,8 @@ parser.add_argument("--pt-check", action="store_true", help="Discard species who
 parser.add_argument('--download', help = "Choose one of the given download options. (default = fasterq-dump)", choices=["fasterq-dump", "aspera", "curl"], default="fasterq-dump")
 parser.add_argument("--skip-download", action ="store_true", help="Skip download process to use present fastq files.")
 parser.add_argument("--skip-trim", action ="store_true", help="Skip trimming process.")
-parser.add_argument("-R", "--remove", action="store_true", help = "Remove fastq files after each process to save memory.")
+parser.add_argument("--remove", action="store_true", help = "Remove fastq files after each process to save memory. Raw fastq files will be saved.")
+parser.add_argument("--remove-all", action="store_true", help = "Remove all fastq files after each process to save memory.")
 
 parser._optionals.title = "General options"
 args, remaining_args = parser.parse_known_args()
@@ -39,6 +40,7 @@ dna_parser.add_argument('--max-reads', type=int, metavar="MAX_READS", help=' Max
 dna_parser.add_argument('-P', type=int, metavar="PRE_GROUPED", help='Pre-grouping value. Default: 200000', default=200000)
 dna_parser._optionals.title = "Options for DNA"
 
+rna_parser = argparse.ArgumentParser(prog=f"OrgaMiner_pt.py [taxa_file] --RNA", add_help=False, epilog="-"*50)
 
 def help_message():
     parser.print_help()
@@ -67,10 +69,12 @@ else:
 
         expected_line_length = None
         is_sra_given = False
+        is_ref_given= False
 
         sra_species = {}
         species_list = []
         sra_list = []
+        taxa_ref = {}
 
         if args.DNA:
             dna_args = dna_parser.parse_args(remaining_args)
@@ -139,16 +143,32 @@ else:
                         print(f"{error_message}")
                         raise Exception(error_message)
                     elif len(line) == 2: # taxa, sra
+                        is_sra_given = True
                         sra = line[1]
                         sra_list.append(sra)
                         sra_species[sra] = taxa
-                   
+                    else: # taxa, sra, ref
+                        is_ref_given = True
+                        is_sra_given = True
+                        sra = line[1]
+                        sra_list.append(sra)
+                        sra_species[sra] = taxa
+                        ref = line[2]
+                        taxa_ref[taxa] = ref
                 else:
                     if len(line) == 2: # taxa, sra
                         is_sra_given = True
                         sra = line[1]
                         sra_list.append(sra)
                         sra_species[sra] = taxa
+                    elif len(line) == 3: ####!
+                        is_ref_given = True
+                        is_sra_given = True
+                        sra = line[1]
+                        sra_list.append(sra)
+                        sra_species[sra] = taxa
+                        ref = line[2]
+                        taxa_ref[taxa] = ref
                     else: # taxa
                         logging.info(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
                         print(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
@@ -329,6 +349,28 @@ else:
 
         os.system(f"mkdir result/{SPECIES}") 
 
+        if args.RNA:
+            if not is_ref_given:
+                import reference
+                if not os.path.exists("references"):
+                    os.system("mkdir references")
+                genus = SPECIES.split("_")[0]
+                logging.info(f"{SPECIES} - Searching Reference Plastid Genome: Querying Genus for Assembly")
+                print(f"{SPECIES} - Searching Reference Plastid Genome: Querying Genus for Assembly")
+                ref_avail = reference.pt_ref_finder(genus, logging)
+
+                if not ref_avail:
+                    logging.info(f"{SPECIES} - No Reference Fasta Found for Genus '{genus}'. Skipping to the Next Species")
+                    print(f"{SPECIES} - No Reference Fasta Found for Genus '{genus}'. Skipping to the Next Species")
+                    continue
+                else:
+                    logging.info(f"{SPECIES} - Reference Fasta Found for Genus '{genus}'")
+                    print(f"{SPECIES} - Reference Fasta Found for Genus '{genus}'")
+                    ref = f"references/{genus}.fa"
+            else:
+                ref = taxa_ref[SPECIES]
+
+
         if not args.skip_download:
             sras = " ".join(SRAS)
             
@@ -374,7 +416,6 @@ else:
         logging.info(f"{SPECIES} - MultiQC Analysis Begins")
         print(f"{SPECIES} - MultiQC Analysis Begins")
         os.system(f"multiqc {SPECIES} -o {SPECIES}")
-        os.system(f"mv {SPECIES}/multiqc* result/{SPECIES}") 
         logging.info(f"{SPECIES} - MultiQC Analysis Completed")
         print(f"{SPECIES} - MultiQC Analysis Completed")
 
@@ -400,7 +441,7 @@ else:
                             logging.info(f"{SPECIES} - Adapter Trimming Completed for {file} {reverse}")
                             print(f"{SPECIES} - Adapter Trimming Completed for {file} {reverse}")
 
-                            if args.remove: 
+                            if args.remove_all: 
                                 os.system(f"rm {SPECIES}/{file} {SPECIES}/{reverse}")
                             else:
                                 os.system(f"mv {SPECIES}/{file} {SPECIES}/{reverse} result/{SPECIES}")
@@ -414,7 +455,7 @@ else:
                             logging.info(f"{SPECIES} - Adapter Trimming Completed for {file}")
                             print(f"{SPECIES} - Adapter Trimming Completed for {file}")
 
-                            if args.remove: 
+                            if args.remove_all: 
                                 os.system(f"rm {SPECIES}/{file}")
                             else:
                                 os.system(f"mv {SPECIES}/{file} result/{SPECIES}")
@@ -428,7 +469,7 @@ else:
                         logging.info(f"{SPECIES} - Adapter Trimming Completed for {file}")
                         print(f"{SPECIES} - Adapter Trimming Completed for {file}")
 
-                        if args.remove: 
+                        if args.remove_all: 
                             os.system(f"rm {SPECIES}/{file}")
                         else:
                             os.system(f"mv {SPECIES}/{file} result/{SPECIES}")
@@ -505,7 +546,7 @@ else:
                     logging.info(f"{SPECIES} - Single-end Read Combining Is Completed")
                     print(f"{SPECIES} - Single-end Read Combining Is Completed")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -548,7 +589,7 @@ else:
                     logging.info(f"{SPECIES} - Forward Read Combining Is Done")
                     print(f"{SPECIES} - Forward Read Combining Is Done")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -591,7 +632,7 @@ else:
                     logging.info(f"{SPECIES} - Reverse Read Combining Is Done")
                     print(f"{SPECIES} - Reverse Read Combining Is Done")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -607,18 +648,64 @@ else:
         reverse = " "
         single = " "
 
+        is_pair_end = False
+        is_single = False
+
         for root, dirs, files in os.walk(SPECIES):
             if "combined_1.fastq.gz" in files or "combined_1.fastq" in files:
                 forward = f"-1 combined_1.fastq*"
             if "combined_2.fastq.gz" in files or "combined_2.fastq" in files:
+                is_pair_end = True
                 reverse = f"-2 combined_2.fastq*"
             if "combined_single.fastq.gz" in files or "combined_single.fastq" in files:
+                is_single = True
                 if args.DNA:
                     single = f"-u combined_single.fastq*"
                 if args.RNA:
-                    single = f"-S combined_single.fastq*"
+                    reads = f"-U combined_single.fastq*"
 
+################# MERGE PAIR-END READS AND COMBINE W SINGLE-END READS
 
+        if args.RNA and is_pair_end:
+            if is_single:
+                logging.info(f"{SPECIES} - Pair-end Read Merging Begins")
+                print(f"{SPECIES} - Pair-end Read Merging Begins")
+
+                if os.path.exists(f"{SPECIES}/combined_single.fastq.gz"):
+                    vsearch_command = [
+                            'vsearch',
+                            '--fastq_mergepairs', f"{SPECIES}/combined_1.fastq*",
+                            '--reverse', f"{SPECIES}/combined_2.fastq*",
+                            '--fastqout', f"{SPECIES}/combined_merged.fastq.gz",
+                            '--fastq_allowmergestagger']
+            
+                    subprocess.run(vsearch_command, check=True)
+
+                    os.system(f"rm {SPECIES}/combined_1.fastq* {SPECIES}/combined_2.fastq*")
+
+                    reads = f"-U combined_single.fastq.gz,combined_merged.fastq.gz"
+
+                else:
+                    vsearch_command = [
+                            'vsearch',
+                            '--fastq_mergepairs', f"{SPECIES}/combined_1.fastq*",
+                            '--reverse', f"{SPECIES}/combined_2.fastq*",
+                            '--fastqout', f"{SPECIES}/combined_merged.fastq",
+                            '--fastq_allowmergestagger']
+            
+                    subprocess.run(vsearch_command, check=True)
+
+                    os.system(f"rm {SPECIES}/combined_1.fastq* {SPECIES}/combined_2.fastq*")
+
+                    reads = f"-U combined_single.fastq,combined_merged.fastq"
+                                
+                logging.info(f"{SPECIES} - Pair-end Reads Merging Is Completed")
+                print(f"{SPECIES} - Pair-end Reads Merging Is Completed")
+            
+            else:
+                reads = forward + " " + reverse
+
+            
         if args.DNA:
             suffix = ".fasta"
             logging.info(f"{SPECIES} - DNA Assembly Begins")
@@ -637,8 +724,62 @@ else:
 
             os.chdir("..")
             os.system(f"mv {SPECIES}/assembly/*fasta {SPECIES}")
+            os.system(f"sed -i 's/>.*/>{SPECIES}/g' {SPECIES}/*.fasta")
 
-        if args.remove:
+        else:
+            suffix = ".fa"
+            os.chdir(f"{SPECIES}")
+
+            logging.info(f"{SPECIES} - RNA Assembly Begins")
+            print(f"{SPECIES} - RNA Assembly Begins")
+            
+            logging.info(f"{SPECIES} - Building Bowtie2 Index...")
+            print(f"{SPECIES} - Building Bowtie2 Index...")
+            command = f"bowtie2-build -f ../{ref} bowtie2_index"
+            os.system(command)
+            logging.info(f"{SPECIES} - Bowtie2 Index Successfully Created")
+            print(f"{SPECIES} - Bowtie2 Index Successfully Created")
+
+            logging.info(f"{SPECIES} - Bowtie2 Alignment In Progress...")
+            print(f"{SPECIES} - Bowtie2 Alignment In Progress...")
+            command = f"bowtie2 --local -p10 -x bowtie2_index {reads} -S alignment.sam"
+            os.system(command)
+            logging.info(f"{SPECIES} - Bowtie2 Alignment Successfully Completed")
+            print(f"{SPECIES} - Bowtie2 Alignment Successfully Completed")
+
+            logging.info(f"{SPECIES} - Converting SAM to BAM and Sorting")
+            print(f"{SPECIES} - Converting SAM to BAM and sorting")
+            command = f"samtools view -bS alignment.sam | samtools sort -o alignment.bam"
+            os.system(command)
+            logging.info(f"{SPECIES} - BAM Conversion and Sorting Completed Successfully")
+            print(f"{SPECIES} - BAM Conversion and Sorting Completed Successfully")
+
+            os.system("rm alignment.sam")
+
+            logging.info(f"{SPECIES} - Generating Consensus FASTQ Assembly from BAM File")
+            print(f"{SPECIES} - Generating Consensus FASTQ Assembly from BAM File")
+            command = f"samtools mpileup -uf ../{ref} alignment.bam | bcftools call -c | vcfutils.pl vcf2fq >{SPECIES}_assembly.fastq"
+            os.system(command)
+            logging.info(f"{SPECIES} - Consensus FASTQ Assembly Completed Successfully")
+            print(f"{SPECIES} - Consensus FASTQ Assembly Completed Successfully")
+
+            os.system("rm alignment.bam")
+
+            logging.info(f"{SPECIES} - Converting FASTQ to FASTA ...")
+            print(f"{SPECIES} - Converting FASTQ to FASTA ...")
+            command = f"seqkit fq2fa {SPECIES}_assembly.fastq > {SPECIES}_assembly.fa"
+            os.system(command)
+            logging.info(f"{SPECIES} - Resulting FASTA is Written to {SPECIES}_assembly.fa")
+            print(f"{SPECIES} - Resulting FASTA is Written to {SPECIES}_assembly.fa")
+
+            os.system(f"sed -i 's/>.*/>{SPECIES}/g' {SPECIES}_assembly.fa")
+
+            logging.info(f"{SPECIES} - RNA Assembly Is Completed")
+            print(f"{SPECIES} - RNA Assembly Is Completed")
+
+            os.chdir("..")
+
+        if args.remove or args.remove_all:
             os.system(f"rm {SPECIES}/combined*")
 
         os.system(f"mv {SPECIES}/* result/{SPECIES}")
