@@ -54,7 +54,7 @@ For Aspera Installation (optional but recommended for downloading fastq files in
 # Usage
 
 `OrgaMiner.py [-h]
- [taxa_file] [--mt-check] [--download {fasterq-dump,aspera,curl}] [--annotate {Chordata,Arthropoda,Echinodermata,Annelida-segmented-worms,Bryozoa,Mollusca,Nematoda,Nemertea-ribbon-worms,Porifera-sponges}] [--DNA ['-F', '-t', '-s', '--max-reads', '-P'] | --RNA ['-a', '-L', '-r', '-C', '-g', '-M', '']]`
+ [taxa_file] [--mt-check] [--download {fasterq-dump,aspera,curl}] [--annotate {Chordata,Arthropoda,Echinodermata,Annelida-segmented-worms,Bryozoa,Mollusca,Nematoda,Nemertea-ribbon-worms,Porifera-sponges}] [--DNA ['-F', '-t', '-s', '--max-reads', '-P'] | --RNA ['-a', '-L', '-r', '-C', '-g', '-M', '-c']]`
 
 Process DNA or RNA data for mitochondrial genome
 
