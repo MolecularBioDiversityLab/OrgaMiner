@@ -21,7 +21,8 @@ parser.add_argument("--mt-check", action="store_true", help="Discard species who
 parser.add_argument('--download', help = "Choose one of the given download options. (default = fasterq-dump)", choices=["fasterq-dump", "aspera", "curl"], default="fasterq-dump")
 parser.add_argument("--skip-download", action ="store_true", help="Skip download process to use present fastq files.")
 parser.add_argument("--skip-trim", action ="store_true", help="Skip trimming process.")
-parser.add_argument("-R", "--remove", action="store_true", help = "Remove fastq files after each process to save memory.")
+parser.add_argument("--remove", action="store_true", help = "Remove fastq files after each process to save memory. Raw fastq files will be saved.")
+parser.add_argument("--remove-all", action="store_true", help = "Remove all fastq files after each process to save memory.")
 parser.add_argument('--annotate', choices=["Chordata","Arthropoda","Echinodermata","Annelida-segmented-worms","Bryozoa","Mollusca","Nematoda",
                                            "Nemertea-ribbon-worms","Porifera-sponges"], help= 'Annotate output assembly using MITOZ. Clade must be specified.', default="Arthropoda")
 parser._optionals.title = "General options"
@@ -124,7 +125,7 @@ else:
                     else:
                         logging.info(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
                         print(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
-                        cmd = f"esearch -db sra -query '{taxa}[Organism] AND GENOMIC[Source] AND WGS[Strategy]' | efetch -format runinfo"
+                        cmd = f"d "
                         output = subprocess.check_output(cmd, shell=True, text=True)
                         logging.info(f"SRA Accession Search Completed: ESearch Finished for {taxa}")
                         print(f"SRA Accession Search Completed: ESearch Finished for {taxa}")
@@ -372,6 +373,7 @@ else:
             else:
                 ref = taxa_ref[SPECIES]
 
+
         os.system(f"mkdir result/{SPECIES}") 
 
         if not args.skip_download:
@@ -444,7 +446,7 @@ else:
                             logging.info(f"{SPECIES} - Adapter Trimming Completed for {file} {reverse}")
                             print(f"{SPECIES} - Adapter Trimming Completed for {file} {reverse}")
 
-                            if args.remove: 
+                            if args.remove_all: 
                                 os.system(f"rm {SPECIES}/{file} {SPECIES}/{reverse}")
                             else:
                                 os.system(f"mv {SPECIES}/{file} {SPECIES}/{reverse} result/{SPECIES}")
@@ -458,7 +460,7 @@ else:
                             logging.info(f"{SPECIES} - Adapter Trimming Completed for {file}")
                             print(f"{SPECIES} - Adapter Trimming Completed for {file}")
 
-                            if args.remove: 
+                            if args.remove_all: 
                                 os.system(f"rm {SPECIES}/{file}")
                             else:
                                 os.system(f"mv {SPECIES}/{file} result/{SPECIES}")
@@ -472,7 +474,7 @@ else:
                         logging.info(f"{SPECIES} - Adapter Trimming Completed for {file}")
                         print(f"{SPECIES} - Adapter Trimming Completed for {file}")
 
-                        if args.remove: 
+                        if args.remove_all: 
                             os.system(f"rm {SPECIES}/{file}")
                         else:
                             os.system(f"mv {SPECIES}/{file} result/{SPECIES}")
@@ -550,7 +552,7 @@ else:
                     logging.info(f"{SPECIES} - Single-end Read Combining Is Completed")
                     print(f"{SPECIES} - Single-end Read Combining Is Completed")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -593,7 +595,7 @@ else:
                     logging.info(f"{SPECIES} - Forward Read Combining Is Done")
                     print(f"{SPECIES} - Forward Read Combining Is Done")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -636,7 +638,7 @@ else:
                     logging.info(f"{SPECIES} - Reverse Read Combining Is Done")
                     print(f"{SPECIES} - Reverse Read Combining Is Done")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {' '.join(gz_file_list)}")
                     else:
                         os.system(f"mv {' '.join(gz_file_list)} result/{SPECIES}")
@@ -700,7 +702,7 @@ else:
             if os.path.exists(f"{ref}"):
                 os.system(f"cp {ref} result/{SPECIES}")
 
-        if args.remove:
+        if args.remove or args.remove_all:
             os.system(f"rm {SPECIES}/combined*")
 
         if not args.annotate:
@@ -741,7 +743,7 @@ else:
                     with open(merged_fasta, "w") as output_handle:
                         SeqIO.write(merged_sequence, output_handle, "fasta")
 
-                    if args.remove:
+                    if args.remove or args.remove_all:
                         os.system(f"rm {input_fasta}")
                     else:
                         os.system(f"mv {input_fasta} result/{SPECIES}")
