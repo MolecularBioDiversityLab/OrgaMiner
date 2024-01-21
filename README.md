@@ -30,9 +30,9 @@ Dependencies:
 
 **IMPORTANT NOTE**: When installing GetOrganelle, the preferred databases must be installed by using `get_organelle_config.py --add {database}` command. Check [GetOrganelle github page](https://github.com/Kinggerm/GetOrganelle) for further guidance.
 
-**IMPORTANT NOTE**: Before running the script, please replace 'youremail@example.com' in the 5th line of check.py and reference.py with your email address for the Entrez.email parameter.
+**IMPORTANT NOTE**: Before running the script, please replace 'youremail@example.com' in the 5th line of check.py and reference.py with your own email address for the Entrez.email parameter.
 
-**WARNING**: Using `-–remove` option will cause all fastq files to be deleted permanently. Use with caution.
+**WARNING**: Using `-–remove-all` option will cause all fastq files to be deleted permanently. Use with caution.
 
 **NOTE**: Using mamba for installation of the dependencies is highly recommended.
 
@@ -70,7 +70,9 @@ Process DNA or RNA data for mitochondrial genome
                         Choose one of the given download options. (default = fasterq-dump)
     --skip-download     Skip download process to use present fastq files.
     --skip-trim         Skip trimming process.
-    -R, --remove        Remove fastq files after each process to save memory.
+    --remove              Remove fastq files after each process to save memory. Raw fastq files
+                        will be saved.
+    --remove-all          Remove all fastq files after each process to save memory.
     --annotate {Chordata,Arthropoda,Echinodermata,Annelida-segmented-worms,Bryozoa,Mollusca,Nematoda,Nemertea-ribbon-worms,Porifera-sponges}
                         Annotate output assembly using MITOZ. Clade must be specified.
 
@@ -136,7 +138,9 @@ Process DNA or RNA data for plastid genome
                           Choose one of the given download options. (default = fasterq-dump)
     --skip-download       Skip download process to use present fastq files.
     --skip-trim           Skip trimming process.
-    -R, --remove          Remove fastq files after each process to save memory.
+    --remove              Remove fastq files after each process to save memory. Raw fastq files    
+                        will be saved.
+    --remove-all          Remove all fastq files after each process to save memory.
 
     --DNA                 Run GetOrganelle script for DNA data
 
@@ -150,7 +154,7 @@ Process DNA or RNA data for plastid genome
 
     --RNA                 Process RNA reads
 
-**Important Note**: OrgaMiner_pt.py script does not handle assembly step for RNA data. 
+**Important Note**: OrgaMiner_pt.py script does not handle annotation step for plastid data.
 
 Example usage for OrgaMiner.py script with DNA data
 
@@ -162,15 +166,16 @@ Example usage for OrgaMiner.py script with RNA data
 
 Example usage for OrgaMiner_pt.py script with DNA data
 
-`python OrgaMiner_pt.py taxa_metafile.txt --pt-check --DNA -F embplant_pt`
+`python OrgaMiner_pt.py taxa_metafile.txt --pt-check --DNA  --remove-all -F embplant_pt`
 
 Example usage for OrgaMiner_pt.py script with RNA data
 
-`python OrgaMiner_pt.py taxa_metafile.txt --download curl --RNA`
+`python OrgaMiner_pt.py taxa_metafile.txt --download curl --remove --RNA`
 
 
 Example Metadata Files
 ---
+ 
 **Warning**: When specifying species names in the input file, please ensure there are no spaces, and instead, use underscores (_) to separate words in the name. For example, 'Acanthopleura_granulata'
 
 - Usage with Selected Taxa Only
@@ -205,7 +210,7 @@ or just specify the prefixes of those files without extensions.
 
 To run the script with this input file, `–-skip-download` option must be given.
 
-**Warning**: Be cautious when utilizing the `--remove` option with this usage, as it results in the deletion of all fastq files including the files you specify in the input file. Please be mindful of this consequence before proceeding with the command.
+**Warning**: Be cautious when utilizing the `--remove-all` option with this usage, as it results in the deletion of all fastq files including those you specify in the input file. Please be mindful of this consequence before proceeding with the command. If you aim to preserve your data while managing memory constraints opt for the `--remove` option which exclusively deletes intermediate fastq files.
 
 **Warning**: Pair-end read files must include "_1" or "_2" in their names.
 
