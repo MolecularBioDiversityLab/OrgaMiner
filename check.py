@@ -17,7 +17,7 @@ def mt_check(species_path):
     taxa_names = []
 
     for i in species_list:
-        query = f'{i}[Organism] AND mitochondrion[filter] AND 10000:25000[Sequence Length]'
+        query = f'{i}[Organism] AND mitochondrion[filter] AND 8000:60000[Sequence Length]'
 
         handle = Entrez.esearch(db="nucleotide", term=query, retmax=10)
 
@@ -26,20 +26,11 @@ def mt_check(species_path):
 
         sequence_ids = record['IdList']
 
-        for seq_id in sequence_ids:
-            handle = Entrez.efetch(db="nucleotide", id=seq_id, rettype="gb", retmode="text")
+        if len(sequence_ids) > 0:
+            taxa_names.append(i)
 
-            record = SeqIO.read(handle, "genbank")
+        time.sleep(2)
 
-            taxa = ""
-            description = record.description
-            description = description.split(" ")
-            description = [x for x in description if x != "UNVERIFIED:" and "TPA" not in x]  
-            taxa += description[0] + "_" + description[1]
-            
-            taxa_names.append(taxa)
-            time.sleep(3)
-    
     taxa_names = list(dict.fromkeys(taxa_names))
 
     with open("mt_species.txt", "a") as file:
@@ -59,7 +50,7 @@ def pt_check(species_path):
     taxa_names = []
 
     for i in species_list:
-        query = f'{i}[Organism] AND chloroplast[filter] AND 100000:280000[Sequence Length]'
+        query = f'{i}[Organism] AND chloroplast[filter] AND 80000:600000[Sequence Length]'
 
         handle = Entrez.esearch(db="nucleotide", term=query, retmax=10)  # You can adjust the retmax value
 
@@ -68,22 +59,13 @@ def pt_check(species_path):
 
         sequence_ids = record['IdList']
 
-        for seq_id in sequence_ids:
-            handle = Entrez.efetch(db="nucleotide", id=seq_id, rettype="gb", retmode="text")
+        if len(sequence_ids) > 0:
+            taxa_names.append(i)
 
-            record = SeqIO.read(handle, "genbank")
-
-            taxa = ""
-            description = record.description
-            description = description.split(" ")
-            description = [x for x in description if x != "UNVERIFIED:" and "TPA" not in x]  
-            taxa += description[0] + "_" + description[1]
-            taxa_names.append(taxa)
-            time.sleep(3)
+        time.sleep(2)
 
     taxa_names = list(dict.fromkeys(taxa_names))
 
     with open("pt_species.txt", "a") as file:
         file.write("\n".join(taxa_names))
-
 
