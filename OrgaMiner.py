@@ -125,7 +125,7 @@ else:
                     else:
                         logging.info(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
                         print(f"Starting SRA Accession Search: Initiating ESearch for {taxa}")
-                        cmd = f"d "
+                        cmd = f"esearch -db sra -query '{taxa}[Organism] AND GENOMIC[Source] AND WGS[Strategy]' | efetch -format runinfo"
                         output = subprocess.check_output(cmd, shell=True, text=True)
                         logging.info(f"SRA Accession Search Completed: ESearch Finished for {taxa}")
                         print(f"SRA Accession Search Completed: ESearch Finished for {taxa}")
